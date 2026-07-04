@@ -1,0 +1,76 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: #0a0a12;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none; user-select: none;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+}
+
+#game-wrap {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+#game {
+  background: #000;
+  max-width: 100vw;
+  max-height: 100vh;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+  image-rendering: auto;
+}
+@media (min-aspect-ratio: 16/9) {
+  #game { width: auto; height: 100%; }
+}
+
+/* ---- タッチ操作 ---- */
+#touch-ui { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+body.touch #touch-ui { display: block; }
+
+#pad {
+  position: absolute; left: 4vmin; bottom: 4vmin;
+  width: 34vmin; height: 34vmin; max-width: 190px; max-height: 190px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+  border: 2px solid rgba(255,255,255,0.22);
+  pointer-events: auto;
+}
+#pad-stick {
+  position: absolute; left: 50%; top: 50%;
+  width: 40%; height: 40%;
+  margin: -20% 0 0 -20%;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+}
+
+#btns {
+  position: absolute; right: 4vmin; bottom: 3vmin;
+  display: flex; flex-direction: column; gap: 2vmin;
+  pointer-events: auto;
+}
+.tbtn {
+  width: 15vmin; height: 15vmin; max-width: 84px; max-height: 84px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.10);
+  border: 2px solid rgba(255,255,255,0.30);
+  color: rgba(255,255,255,0.85);
+  font-size: 6vmin; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold;
+}
+.tbtn.pressed { background: rgba(255,80,60,0.45); }
+#btn-special { border-color: rgba(255,190,60,0.6); color: #ffd36b; }
+
+#mute-btn {
+  position: fixed; right: 10px; top: 8px; z-index: 20;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; cursor: pointer;
+}
+#mute-btn.muted { color: rgba(255,255,255,0.25); text-decoration: line-through; }

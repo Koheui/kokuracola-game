@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>武蔵がくる | 小倉コーラ</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="game-wrap">
+  <canvas id="game" width="960" height="540"></canvas>
+
+  <!-- タッチ操作UI(タッチ端末のみ表示) -->
+  <div id="touch-ui">
+    <div id="pad"><div id="pad-stick"></div></div>
+    <div id="btns">
+      <div class="tbtn" id="btn-jump">跳</div>
+      <div class="tbtn" id="btn-attack">斬</div>
+      <div class="tbtn" id="btn-special">殺</div>
+    </div>
+  </div>
+
+  <div id="mute-btn">♪</div>
+</div>
+
+<script src="js/assets.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
