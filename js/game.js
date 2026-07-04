@@ -46,7 +46,10 @@
           ['zakoB', 1, 85, { pair: 'p2', flank: 1 }],
           ['zakoA', -1, 85, { pair: 'p2', flank: -1, drop: 'cola' }]] },
         { at: 0, boss: true, bossName: '大男・徳利の岩五郎', line: '「野郎どもがやられただと？なら俺様が相手だ！」',
-          spawn: [['bossBottle', 1, 60, { name: '大男・徳利の岩五郎', drop: 'niku' }]] },
+          spawn: [
+            ['bossBottle', 1, 60, { name: '大男・徳利の岩五郎', drop: 'niku' }],
+            ['zakoA', 1, 35, { flank: 1, drop: 'cola' }],
+            ['zakoB', -1, 90, { flank: -1 }]] },
       ],
       items: [],
     },
@@ -652,6 +655,63 @@
     ctx.restore();
   }
 
+  // 角丸パス
+  function rrPath(x0, y0, w, h, r) {
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x0, y0, w, h, r);
+    else ctx.rect(x0, y0, w, h);
+  }
+
+  // 話者の顔(なければ最初の登場人物)
+  function dialogFace(page) {
+    const actors = page.actors || [];
+    if (page.sp) {
+      if (page.sp.includes('小次郎')) {
+        const k = actors.find(a => a.startsWith('kojiro'));
+        if (k) return actorLook(k);
+      } else {
+        const o = actors.find(a => !a.startsWith('kojiro'));
+        if (o) return actorLook(o);
+      }
+    }
+    if (actors.length) return actorLook(actors[0]);
+    return null;
+  }
+
+  // 顔グラフィック(枠内に上半身をクリップ表示)
+  function drawFacePortrait(look, bx, by, s) {
+    rrPath(bx, by, s, s, 8);
+    const bg = ctx.createLinearGradient(bx, by, bx, by + s);
+    bg.addColorStop(0, '#42597e');
+    bg.addColorStop(1, '#1a2236');
+    ctx.fillStyle = bg; ctx.fill();
+    ctx.save();
+    rrPath(bx, by, s, s, 8); ctx.clip();
+    const scale = s / look.h * 1.32;
+    ctx.translate(bx + s / 2 + s * 0.05, by + s * 1.5);
+    ctx.scale(scale, scale);
+    drawWarrior(ctx, { ...look, walk: 0, moving: false, breath: Date.now() * 0.005, lean: 0 });
+    ctx.restore();
+    rrPath(bx, by, s, s, 8);
+    ctx.strokeStyle = 'rgba(217,178,60,0.85)'; ctx.lineWidth = 3; ctx.stroke();
+  }
+
+  // 日本語テキストを枠幅で折り返し
+  function wrapLines(lines, maxW, font) {
+    ctx.font = font;
+    const out = [];
+    for (const line of lines) {
+      if (line === '') { out.push(''); continue; }
+      let cur = '';
+      for (const ch of line) {
+        if (cur && ctx.measureText(cur + ch).width > maxW) { out.push(cur); cur = ch; }
+        else cur += ch;
+      }
+      out.push(cur);
+    }
+    return out;
+  }
+
   function drawCutscene(dt) {
     const page = g.cs[g.csPage];
     if (!page) { g.advanceFlow(); return; }
@@ -691,30 +751,9 @@
     drawGround(page.bg, 0);
     ctx.drawImage(vignette, 0, 0);
 
-    // 人物(会話ウィンドウの上に上半身が見える立ち位置)
-    const positions = [[270, 1], [690, -1], [820, -1]];
-    (page.actors || []).forEach((key, i) => {
-      if (i >= positions.length) return;
-      const [ax, fc] = positions[i];
-      const look = actorLook(key);
-      if (!look) return;
-      // 足元の影
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.beginPath(); ctx.ellipse(ax, 432, 34, 10, 0, 0, 7); ctx.fill();
-      ctx.save();
-      ctx.translate(ax, 432);
-      ctx.scale(fc * 1.55, 1.55);
-      // 話者を少し弾ませる
-      const talking = page.sp && ((page.sp.includes('小次郎') && key.startsWith('kojiro')) ||
-        (!key.startsWith('kojiro') && !page.sp.includes('小次郎') && i > 0));
-      drawWarrior(ctx, {
-        ...look,
-        walk: 0, moving: false,
-        breath: Date.now() * 0.006 + i * 2,
-        lean: talking ? Math.sin(Date.now() * 0.012) * 0.02 : 0,
-      });
-      ctx.restore();
-    });
+    // シーンを暗くして会話パネルを主役にする
+    ctx.fillStyle = 'rgba(6,5,12,0.5)';
+    ctx.fillRect(0, 0, W, H);
 
     // 変身演出
     if (page.transform && g.csAnimT < 20) {
@@ -759,43 +798,60 @@
       }
     }
 
-    // 会話ウィンドウ
-    const boxY = 396;
-    ctx.fillStyle = 'rgba(15,12,22,0.88)';
-    ctx.strokeStyle = 'rgba(217,178,60,0.65)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(56, boxY, W - 112, 122, 10); else ctx.rect(56, boxY, W - 112, 122);
-    ctx.fill(); ctx.stroke();
+    // 会話パネル(全画面・大きな文字)
+    const PX = 40, PW = W - 80, PY = 300, PH = 214;
+    rrPath(PX, PY, PW, PH, 14);
+    ctx.fillStyle = 'rgba(12,10,20,0.94)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(217,178,60,0.75)';
+    ctx.lineWidth = 3; ctx.stroke();
+
+    // 顔グラフィック
+    const face = dialogFace(page);
+    let textX = PX + 34;
+    if (face) {
+      const FS = 150, fx = PX + 22, fy = PY + (PH - FS) / 2;
+      drawFacePortrait(face, fx, fy, FS);
+      textX = fx + FS + 30;
+    }
+
+    // 話者名タブ
     if (page.sp) {
+      ctx.font = `bold 22px ${FONT}`;
+      const tw = ctx.measureText(page.sp).width + 34;
+      rrPath(textX - 6, PY - 20, tw, 38, 8);
       ctx.fillStyle = '#2c2438';
-      ctx.strokeStyle = 'rgba(217,178,60,0.65)';
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(76, boxY - 16, 24 + page.sp.length * 17, 30, 6); else ctx.rect(76, boxY - 16, 24 + page.sp.length * 17, 30);
+      ctx.strokeStyle = 'rgba(217,178,60,0.75)'; ctx.lineWidth = 2;
       ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#ffd76b';
-      ctx.font = `bold 15px ${FONT}`;
       ctx.textAlign = 'left';
-      ctx.fillText(page.sp, 88, boxY + 5);
+      ctx.fillText(page.sp, textX + 11, PY + 7);
     }
-    ctx.fillStyle = '#f0e6d2';
-    ctx.textAlign = 'left';
-    ctx.font = `17px ${FONT}`;
-    // 文字送り
+
+    // 文字送り(枠幅で自動折り返し)
+    const maxTextW = PX + PW - textX - 26;
+    const bodyFont = `26px ${FONT}`;
+    const wrapped = wrapLines(page.t, maxTextW, bodyFont);
+    const total = wrapped.reduce((s, l) => s + l.length, 0);
     const shown = Math.floor(g.csAnimT * 1.6);
+    ctx.fillStyle = '#f4ecdc';
+    ctx.textAlign = 'left';
+    ctx.font = bodyFont;
+    const lineH = wrapped.length > 4 ? 36 : 42;
+    const startY = PY + 34 + (PH - 34 - wrapped.length * lineH) / 2;
     let used = 0;
-    page.t.forEach((line, i) => {
+    wrapped.forEach((line, i) => {
       const take = Math.max(0, Math.min(line.length, shown - used));
-      ctx.fillText(line.slice(0, take), 90, boxY + 34 + i * 22);
+      ctx.fillText(line.slice(0, take), textX, startY + i * lineH + 22);
       used += line.length;
     });
-    const fullyShown = shown >= used;
+    const fullyShown = shown >= total;
 
     if (fullyShown && hpUpDone && Math.floor(Date.now() / 500) % 2 === 0) {
       ctx.fillStyle = '#ffd76b';
       ctx.textAlign = 'right';
-      ctx.font = `15px ${FONT}`;
-      ctx.fillText('▼', W - 80, boxY + 106);
+      ctx.font = `20px ${FONT}`;
+      ctx.fillText('▼', PX + PW - 22, PY + PH - 18);
     }
 
     drawFlash();
