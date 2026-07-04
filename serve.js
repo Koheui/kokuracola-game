@@ -15,6 +15,21 @@ const MIME = {
 
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
+  // 開発用: ブラウザで加工した画像を assets/img/ に保存する
+  if (req.method === 'POST' && p === '/save') {
+    const q = new URLSearchParams(req.url.split('?')[1] || '');
+    const name = path.basename(q.get('name') || '');
+    if (!/^[\w.-]+\.png$/.test(name)) { res.writeHead(400); return res.end('bad name'); }
+    const dir = q.get('dir') === 'sprites' ? path.join(ROOT, 'assets/img/sprites') : path.join(ROOT, 'assets/img');
+    fs.mkdirSync(dir, { recursive: true });
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => {
+      fs.writeFileSync(path.join(dir, name), Buffer.concat(chunks));
+      res.writeHead(200); res.end('saved ' + name);
+    });
+    return;
+  }
   if (p === '/') p = '/index.html';
   const file = path.join(ROOT, path.normalize(p));
   if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end(); }

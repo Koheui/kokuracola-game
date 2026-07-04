@@ -138,7 +138,7 @@
 
   // 会話シーンの登場人物
   function actorLook(key) {
-    if (key === 'kojiro') return kojiroLook(true);
+    if (key === 'kojiro') return { ...kojiroLook(true), portrait: 'portrait_kojiro' };
     if (key === 'kojiroWeak') return kojiroLook(false);
     if (key === 'zako') {
       const c = ENEMY_TYPES.zakoA;
@@ -662,6 +662,23 @@
     else ctx.rect(x0, y0, w, h);
   }
 
+  // ロゴ描画:元画像の縦横比を保ったまま指定の高さで中央に。
+  // plate=true で黒ロゴが暗い背景でも読めるようクリーム色の下地を敷く。
+  function drawLogo(cx, cy, targetH, plate) {
+    const logo = Assets.img('cola_logo');
+    if (!logo) return;
+    const ar = (logo.width || 1) / (logo.height || 1);
+    const h = targetH, w = h * ar;
+    if (plate) {
+      const pad = w * 0.16 + 10;
+      rrPath(cx - w / 2 - pad, cy - h / 2 - pad * 0.6, w + pad * 2, h + pad * 1.2, 12);
+      ctx.fillStyle = '#f4ecd8';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120,90,40,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    ctx.drawImage(logo, cx - w / 2, cy - h / 2, w, h);
+  }
+
   // 話者の顔(なければ最初の登場人物)
   function dialogFace(page) {
     const actors = page.actors || [];
@@ -687,10 +704,20 @@
     ctx.fillStyle = bg; ctx.fill();
     ctx.save();
     rrPath(bx, by, s, s, 8); ctx.clip();
-    const scale = s / look.h * 1.32;
-    ctx.translate(bx + s / 2 + s * 0.05, by + s * 1.5);
-    ctx.scale(scale, scale);
-    drawWarrior(ctx, { ...look, walk: 0, moving: false, breath: Date.now() * 0.005, lean: 0 });
+    if (look.portrait && Assets.isExternal(look.portrait)) {
+      // 生成アートの顔グラ(カバーフィット・上寄せ)
+      const img = Assets.img(look.portrait);
+      const k = Math.max(s / img.width, s / img.height);
+      const dw = img.width * k, dh = img.height * k;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, bx + (s - dw) / 2, by, dw, dh);
+      ctx.imageSmoothingEnabled = true;
+    } else {
+      const scale = s / look.h * 1.32;
+      ctx.translate(bx + s / 2 + s * 0.05, by + s * 1.5);
+      ctx.scale(scale, scale);
+      drawWarrior(ctx, { ...look, walk: 0, moving: false, breath: Date.now() * 0.005, lean: 0 });
+    }
     ctx.restore();
     rrPath(bx, by, s, s, 8);
     ctx.strokeStyle = 'rgba(217,178,60,0.85)'; ctx.lineWidth = 3; ctx.stroke();
@@ -721,8 +748,7 @@
     if (page.tsuzuku) {
       ctx.fillStyle = '#0a0a12';
       ctx.fillRect(0, 0, W, H);
-      const logo = Assets.img('cola_logo');
-      ctx.drawImage(logo, W / 2 - 130, 70, 260, 104);
+      drawLogo(W / 2, 120, 150, true);
       ctx.textAlign = 'center';
       ctx.fillStyle = '#f0e6d2';
       ctx.font = `bold 54px ${FONT}`;
@@ -1200,27 +1226,35 @@
     ctx.fillStyle = 'rgba(8,8,20,0.5)';
     ctx.fillRect(0, 0, W, H);
 
-    // 小次郎(変身後)
-    ctx.save();
-    ctx.translate(720, 470);
-    ctx.scale(1.6, 1.6);
-    drawWarrior(ctx, {
-      ...kojiroLook(true),
-      walk: 0, moving: false,
-      breath: g.titleT * 0.05,
-      swing: -1.5 + Math.sin(g.titleT * 0.02) * 0.06,
-    });
-    ctx.restore();
+    // 小次郎(変身後) — 生成アートがあればそれを使う
+    if (Assets.isExternal('title_kojiro')) {
+      const art = Assets.img('title_kojiro');
+      const bob = Math.sin(g.titleT * 0.03) * 4;
+      const ah = 430, aw = art.width * ah / art.height;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(art, 715 - aw / 2, 520 - ah + bob, aw, ah);
+      ctx.imageSmoothingEnabled = true;
+    } else {
+      ctx.save();
+      ctx.translate(720, 470);
+      ctx.scale(1.6, 1.6);
+      drawWarrior(ctx, {
+        ...kojiroLook(true),
+        walk: 0, moving: false,
+        breath: g.titleT * 0.05,
+        swing: -1.5 + Math.sin(g.titleT * 0.02) * 0.06,
+      });
+      ctx.restore();
+    }
 
-    const logo = Assets.img('cola_logo');
-    ctx.drawImage(logo, W / 2 - 90, 24, 180, 72);
+    drawLogo(W / 2, 78, 122, true);
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
     ctx.font = `13px ${FONT}`;
-    ctx.fillText('presents', W / 2, 112);
+    ctx.fillText('presents', W / 2, 188);
 
     ctx.save();
-    ctx.translate(W / 2 - 90, 260);
+    ctx.translate(W / 2 - 90, 288);
     ctx.rotate(-0.03);
     ctx.textAlign = 'center';
     ctx.font = `bold 92px ${FONT}`;
