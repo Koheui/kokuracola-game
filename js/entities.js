@@ -1004,7 +1004,9 @@ class Player {
         this.x += dx * this.speed * dt;
         this.z += dz * 2.3 * dt;
         if (this.moving) {
-          this.walk += dt * 0.32;
+          // 歩行位相は実際の移動距離に同期(足が地面と合う)
+          const travel = Math.hypot(dx * this.speed, dz * 2.3) * dt;
+          this.walk += travel * 0.045;
           if (this.y === 0 && Math.random() < 0.09) {
             g.addFx(new Fx('dust', this.x - this.facing * 12, this.z, 0, { dir: this.facing, life: 14 }));
           }
@@ -1155,7 +1157,7 @@ class Player {
       } else if (this.y > 0) {
         anim = 'jump'; frame = this.vy > 3 ? 0 : this.vy > 0 ? 1 : this.vy > -4 ? 2 : 3;
       } else if (this.moving && this.state === 'normal') {
-        anim = 'walk'; frame = Math.floor(this.walk * 2.2) % sheetDef.anims.walk;
+        anim = 'walk'; frame = Math.floor(this.walk * 1.27) % sheetDef.anims.walk;
       } else {
         anim = 'idle'; frame = Math.floor(Date.now() / 130) % sheetDef.anims.idle;
       }
