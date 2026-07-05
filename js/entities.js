@@ -1159,7 +1159,7 @@ class Player {
       } else {
         anim = 'idle'; frame = Math.floor(Date.now() / 130) % sheetDef.anims.idle;
       }
-      drawFromSheet(x, sheetName, anim, frame, this.strong ? 96 : 88);
+      drawFromSheet(x, sheetName, anim, frame, this.strong ? 116 : 106);
       x.restore();
       return;
     }
