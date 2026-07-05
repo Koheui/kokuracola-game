@@ -625,20 +625,47 @@
     if (kind === 'cola') {
       ctx.drawImage(Assets.img('cola'), -20, -44, 40, 80);
     } else if (kind === 'kusa') {
-      // 紫草
-      ctx.strokeStyle = '#4e7e3a'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(0, 36); ctx.quadraticCurveTo(-4, 0, 2, -18); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, 20); ctx.quadraticCurveTo(-16, 12, -22, 20); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(1, 6); ctx.quadraticCurveTo(16, 0, 22, 8); ctx.stroke();
-      ctx.fillStyle = '#9a6ac9';
-      for (let k = 0; k < 6; k++) {
-        const a = k * 1.05;
+      // 紫草(染料になる紫根が主役。花はなし)
+      // 緑の葉(地上部)
+      ctx.fillStyle = '#4e7e3a';
+      const leaf = (ang, len) => {
+        ctx.save(); ctx.rotate(ang);
         ctx.beginPath();
-        ctx.arc(2 + Math.cos(a) * 12, -24 + Math.sin(a) * 10, 7, 0, 7);
+        ctx.ellipse(0, -len, 4.5, len, 0, 0, 7);
         ctx.fill();
-      }
-      ctx.fillStyle = '#e8d8f8';
-      ctx.beginPath(); ctx.arc(2, -24, 5, 0, 7); ctx.fill();
+        ctx.restore();
+      };
+      ctx.save(); ctx.translate(0, -8);
+      leaf(-0.5, 26); leaf(-0.15, 32); leaf(0.2, 30); leaf(0.55, 24);
+      ctx.strokeStyle = '#3a6630'; ctx.lineWidth = 1.2;
+      [[-0.5,26],[-0.15,32],[0.2,30],[0.55,24]].forEach(([a,l]) => {
+        ctx.save(); ctx.rotate(a);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -l * 1.9); ctx.stroke();
+        ctx.restore();
+      });
+      ctx.restore();
+      // 根の付け根(株)
+      ctx.fillStyle = '#8a5a3a';
+      ctx.beginPath(); ctx.ellipse(0, -6, 8, 5, 0, 0, 7); ctx.fill();
+      // 太い紫の主根 + 枝分かれ(これが染料)
+      const rootMain = '#6e2c58', rootLight = '#9a3f7e';
+      ctx.strokeStyle = rootMain; ctx.lineCap = 'round';
+      // 主根
+      ctx.lineWidth = 9;
+      ctx.beginPath(); ctx.moveTo(0, -4); ctx.quadraticCurveTo(-3, 22, 3, 46); ctx.stroke();
+      // 枝根
+      ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(-1, 8); ctx.quadraticCurveTo(-16, 18, -20, 40); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(2, 14); ctx.quadraticCurveTo(18, 22, 22, 44); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(1, 26); ctx.quadraticCurveTo(-8, 36, -9, 52); ctx.stroke();
+      // 細いひげ根
+      ctx.strokeStyle = rootLight; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(3, 40); ctx.lineTo(8, 54); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-18, 38); ctx.lineTo(-22, 50); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(20, 42); ctx.lineTo(26, 52); ctx.stroke();
+      // 主根のハイライト
+      ctx.strokeStyle = rootLight; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-1, 2); ctx.quadraticCurveTo(-3, 20, 1, 40); ctx.stroke();
     } else if (kind === 'butaman') {
       // 豚まん
       ctx.fillStyle = '#f2e8d8';
