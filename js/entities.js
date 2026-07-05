@@ -1507,9 +1507,13 @@ class Enemy {
       }
       drawFromSheet(x, this.type, anim, frame, c.h);
       if (this.state === 'windup' && this.stateT > c.windup - 10) {
-        x.globalAlpha = 0.45;
-        x.fillStyle = '#fff';
-        x.beginPath(); x.arc(0, -c.h * 0.8, c.h * 0.16, 0, 7); x.fill();
+        // 攻撃予兆:頭上に赤い「!」
+        x.fillStyle = '#e83c2e';
+        x.strokeStyle = 'rgba(0,0,0,0.7)'; x.lineWidth = 3;
+        x.font = `bold ${Math.round(c.h * 0.24)}px serif`;
+        x.textAlign = 'center';
+        x.strokeText('!', 0, -c.h * 1.12);
+        x.fillText('!', 0, -c.h * 1.12);
       }
       x.restore();
       if (!c.boss && !this.dead && this.hp < this.maxHp) {
@@ -1563,9 +1567,13 @@ class Enemy {
     });
 
     if (this.state === 'windup' && this.stateT > c.windup - 10) {
-      x.globalAlpha = 0.55;
-      x.fillStyle = '#fff';
-      x.beginPath(); x.arc(0.02 * c.h, -c.h * 0.86, c.h * 0.16, 0, 7); x.fill();
+      // 攻撃予兆:頭上に赤い「!」
+      x.fillStyle = '#e83c2e';
+      x.strokeStyle = 'rgba(0,0,0,0.7)'; x.lineWidth = 3;
+      x.font = `bold ${Math.round(c.h * 0.24)}px serif`;
+      x.textAlign = 'center';
+      x.strokeText('!', 0, -c.h * 1.12);
+      x.fillText('!', 0, -c.h * 1.12);
     }
     x.restore();
 

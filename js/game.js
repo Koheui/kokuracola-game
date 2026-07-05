@@ -48,8 +48,12 @@
         { at: 0, boss: true, bossName: '大男・徳利の岩五郎', line: '「野郎どもがやられただと？なら俺様が相手だ！」',
           spawn: [
             ['bossBottle', 1, 60, { name: '大男・徳利の岩五郎', drop: 'niku' }],
-            ['zakoA', 1, 35, { flank: 1, drop: 'cola' }],
-            ['zakoB', -1, 90, { flank: -1 }]] },
+            ['zakoA', 1, 30, { flank: 1, drop: 'cola' }],
+            ['zakoB', -1, 40, { flank: -1 }],
+            ['zakoA', 1, 70, { flank: 1 }],
+            ['zakoB', -1, 80, { flank: -1, drop: 'cola' }],
+            ['zakoA', 1, 100, { flank: 1 }],
+            ['zakoA', -1, 55, { flank: -1 }]] },
       ],
       items: [],
     },
@@ -1072,31 +1076,42 @@
       ctx.strokeRect(sx - 3, p.top - 6, p.w + 6, 10);
     }
 
-    // 山椒の木
+    // 山椒の低木(実はグリーン)
     for (const tr of m.trees) {
       const sx = tr.x - m.camX;
       if (sx < -60 || sx > W + 60) continue;
-      ctx.strokeStyle = '#5a3f26'; ctx.lineWidth = 7;
+      // 短い幹
+      ctx.strokeStyle = '#5a3f26'; ctx.lineWidth = 6;
       ctx.beginPath();
       ctx.moveTo(sx, tr.top);
-      ctx.quadraticCurveTo(sx + 4, tr.top - 40, sx - 2, tr.top - 66);
+      ctx.lineTo(sx - 1, tr.top - 16);
       ctx.stroke();
       if (!tr.picked) {
+        // こんもりした茂み(低木)
         ctx.fillStyle = '#3f7a35';
-        ctx.beginPath(); ctx.arc(sx - 2, tr.top - 84, 26, 0, 7); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx - 16, tr.top - 24, 16, 0, 7);
+        ctx.arc(sx + 2, tr.top - 32, 19, 0, 7);
+        ctx.arc(sx + 18, tr.top - 22, 14, 0, 7);
+        ctx.fill();
         ctx.fillStyle = '#57a047';
-        ctx.beginPath(); ctx.arc(sx - 10, tr.top - 92, 15, 0, 7); ctx.fill();
-        // 山椒の実(赤い房)
-        ctx.fillStyle = '#d0453a';
-        for (let k = 0; k < 7; k++) {
-          const a = k * 0.9;
+        ctx.beginPath(); ctx.arc(sx - 6, tr.top - 34, 12, 0, 7); ctx.fill();
+        // 山椒の実(緑の粒の房)
+        ctx.fillStyle = '#8fd44a';
+        ctx.strokeStyle = 'rgba(30,60,20,0.5)'; ctx.lineWidth = 1;
+        for (let k = 0; k < 8; k++) {
+          const a = k * 0.8;
           ctx.beginPath();
-          ctx.arc(sx - 2 + Math.cos(a) * 15, tr.top - 82 + Math.sin(a) * 11, 3.6, 0, 7);
-          ctx.fill();
+          ctx.arc(sx + Math.cos(a) * 17, tr.top - 27 + Math.sin(a) * 9, 3.4, 0, 7);
+          ctx.fill(); ctx.stroke();
         }
       } else {
+        // 収穫後のしぼんだ茂み
         ctx.fillStyle = '#3f6a35';
-        ctx.beginPath(); ctx.arc(sx - 2, tr.top - 76, 14, 0, 7); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx - 8, tr.top - 16, 10, 0, 7);
+        ctx.arc(sx + 8, tr.top - 18, 11, 0, 7);
+        ctx.fill();
       }
     }
 
