@@ -684,15 +684,12 @@ const NPC_PRESETS = {
 };
 
 // 小次郎の見た目(弱い/変身後)
-function kojiroLook(strong) {
-  return strong ? {
+// 小次郎は一形態のみ(変身廃止)。衣装: 白い着物+青い袴
+function kojiroLook() {
+  return {
     h: 96, skin: '#e8c298', skinD: '#caa27a',
-    robe: '#7fa8c9', robeD: '#54748f', hakama: '#e8e4da', sash: '#5a3a6b',
+    robe: '#f2efe6', robeD: '#cfd4de', hakama: '#33549c', sash: '#1d2b4a',
     hat: 'kojiro', face: 'grim', weapon: 'nodachi',
-  } : {
-    h: 88, skin: '#e3c096', skinD: '#c49e74',
-    robe: '#8a7a63', robeD: '#655742', hakama: '#57503f', sash: '#3e3626',
-    hat: 'weak', face: 'worried', weapon: 'katana',
   };
 }
 
@@ -873,7 +870,7 @@ class Bottle {
 
 /* ---------- アイテム ---------- */
 const ITEM_DEFS = {
-  cola: { img: 'cola', label: '小倉コーラ!一流剣士に変身!!', color: '#ff6b5e' },
+  cola: { img: 'cola', label: '小倉コーラ!', color: '#ff6b5e' },
   niku: { img: 'niku', label: '娘娘の肉焼飯!大回復!', color: '#ffd76b' },
   tea:  { img: 'tea',  label: '辻利のグリーンティー!回復!', color: '#9be07c' },
 };
@@ -917,7 +914,8 @@ class Player {
     this.vy = 0; this.facing = 1;
     this.maxHp = maxHp || 100; this.hp = this.maxHp;
     this.gauge = 0;
-    this.colaT = 0;          // 変身の残りフレーム(20秒=1200)
+    this.colaT = 0;          // 燕返しが使える残りフレーム(20秒=1200)
+    this.specialCd = 0;      // 燕返しのクールダウン
     this.state = 'normal';
     this.stateT = 0;
     this.atkIndex = 0; this.atkBuffered = false;
@@ -927,17 +925,20 @@ class Player {
     this.deadWait = 0;
   }
 
-  get strong() { return this.colaT > 0; }
-  get speed() { return this.strong ? 3.9 : 3.0; }
+  // 変身仕様は廃止: 小次郎は常に本気。コーラは秘剣・燕返しを解禁する
+  get strong() { return true; }
+  get speed() { return 3.9; }
 
+  // 小倉コーラ: 20秒間、秘剣・燕返し(Cボタン)が使えるようになる
   transform(g) {
-    const was = this.strong;
+    const had = this.colaT > 0;
     this.colaT = 1200; // 20秒
     AudioFX.sfx.cola();
     g.flashT = 6;
-    if (!was) {
+    if (!had) {
       g.addFx(new Fx('ring', this.x, this.z, 0, { r: 110, color: '#9fd8ff', life: 26 }));
       g.addFx(new Fx('ring', this.x, this.z, 0, { r: 110, color: '#fff', life: 36 }));
+      g.addFx(new Fx('text', this.x, this.z, 60, { text: '秘剣・燕返し 解禁!', color: '#8fd4ff', size: 22, life: 60 }));
     }
   }
 
@@ -978,10 +979,11 @@ class Player {
     const I = Input.state;
     this.stateT += dt;
     if (this.invulnT > 0) this.invulnT -= dt;
+    if (this.specialCd > 0) this.specialCd -= dt;
     if (this.colaT > 0) {
       this.colaT -= dt;
       if (this.colaT <= 0) {
-        g.addFx(new Fx('text', this.x, this.z, 0, { text: '効果が切れた…', color: '#aaa', size: 16 }));
+        g.addFx(new Fx('text', this.x, this.z, 0, { text: '燕返しの効果が切れた…', color: '#aaa', size: 16 }));
         g.addFx(new Fx('poof', this.x, this.z, 40, { life: 20 }));
       }
       if (Math.random() < 0.25) {
@@ -1014,7 +1016,7 @@ class Player {
         }
         if (I.jumpHit && this.y === 0) { this.vy = 9.4; AudioFX.sfx.jump(); }
         if (I.attackHit) { this.atkIndex = 0; this.startAttack(g); }
-        else if (I.specialHit && this.gauge >= 100 && this.y === 0 && this.strong) this.startSpecial(g);
+        else if (I.specialHit && this.colaT > 0 && this.specialCd <= 0 && this.y === 0) this.startSpecial(g);
         break;
       }
       case 'attack': {
@@ -1055,18 +1057,43 @@ class Player {
         break;
       }
       case 'special': {
-        const dur = 48;
+        // 秘剣・燕返し: 斬り下ろし→即・斬り上げの2連斬
+        const dur = 44;
         this.invulnT = 2;
-        if (this.stateT > 8 && !this.specialHitDone) {
-          this.specialHitDone = true;
+        if ((this.stateT > 2 && this.stateT < 12) || (this.stateT > 22 && this.stateT < 32)) {
+          this.x += this.facing * 2.6 * dt; // 踏み込み
+        }
+        const doSlash = (set, dmg, launch) => {
           for (const e of g.enemies) {
-            if (e.dead) continue;
-            if (Math.abs(e.x - this.x) < 190 && Math.abs(e.z - this.z) < 60) {
-              e.takeHit(70, e.x >= this.x ? 1 : -1, g, true);
+            if (e.dead || set.has(e)) continue;
+            const dxE = (e.x - this.x) * this.facing;
+            if (dxE > -14 && dxE < 108 && Math.abs(e.z - this.z) < 30 &&
+                e.y < this.y + 80 && e.y + e.height > this.y) {
+              set.add(e);
+              e.takeHit(dmg, this.facing, g, launch);
+              g.hitstop = Math.max(g.hitstop, 5);
             }
           }
-          for (const a of g.arrows) a.dead = true;
-          g.shakeT = 14;
+          for (const a of g.arrows) {
+            const dxA = (a.x - this.x) * this.facing;
+            if (!a.dead && dxA > -10 && dxA < 100 && Math.abs(a.z - this.z) < 26) {
+              if (a.smash) a.smash(g); else a.dead = true;
+            }
+          }
+        };
+        if (this.stateT > 4 && this.stateT <= 16) doSlash(this.tsubameA, 22, false);
+        if (this.stateT > 24 && this.stateT <= 36) doSlash(this.tsubameB, 30, true);
+        if (!this.tsubameFx1 && this.stateT > 4) {
+          this.tsubameFx1 = true;
+          AudioFX.sfx.slash();
+          g.addFx(new Fx('cut', this.x + this.facing * 55, this.z, 0,
+            { hy: 58, rot: this.facing > 0 ? -0.7 : 0.7, len: 115, life: 13, color: '#dff2ff' }));
+        }
+        if (!this.tsubameFx2 && this.stateT > 24) {
+          this.tsubameFx2 = true;
+          AudioFX.sfx.slash();
+          g.addFx(new Fx('cut', this.x + this.facing * 62, this.z, 0,
+            { hy: 48, rot: this.facing > 0 ? 0.75 : -0.75, len: 130, life: 14, color: '#ffffff' }));
         }
         if (this.stateT >= dur) { this.state = 'normal'; }
         break;
@@ -1105,13 +1132,11 @@ class Player {
 
   startSpecial(g) {
     this.state = 'special'; this.stateT = 0;
-    this.gauge = 0;
-    this.specialHitDone = false;
+    this.specialCd = 55;
+    this.tsubameA = new Set(); this.tsubameB = new Set();
+    this.tsubameFx1 = this.tsubameFx2 = false;
     AudioFX.sfx.special();
-    g.addFx(new Fx('ring', this.x, this.z, 0, { r: 190, color: '#bfe3ff', life: 26 }));
-    g.addFx(new Fx('ring', this.x, this.z, 0, { r: 190, color: '#fff', life: 36 }));
-    g.addFx(new Fx('text', this.x, this.z, 40, { text: '巌流旋風斬り!!', color: '#bfe3ff', size: 30, life: 50 }));
-    g.flashT = 8;
+    g.addFx(new Fx('text', this.x, this.z, 40, { text: '燕返し!!', color: '#bfe3ff', size: 28, life: 45 }));
   }
 
   draw(x, camX) {
@@ -1121,8 +1146,8 @@ class Player {
     x.fillStyle = 'rgba(0,0,0,0.35)';
     x.beginPath(); x.ellipse(sx, gy, 22 * ds, 7 * ds, 0, 0, 7); x.fill();
 
-    // 変身中のオーラ
-    if (this.strong) {
+    // 燕返し解禁中のオーラ
+    if (this.colaT > 0) {
       x.save();
       const a = 0.2 + Math.sin(Date.now() * 0.02) * 0.08;
       const grad = x.createRadialGradient(sx, gy - 40, 10, sx, gy - 40, 70);
@@ -1150,7 +1175,7 @@ class Player {
         const dur = this.y > 0 ? 18 : (this.atkIndex === 2 ? 24 : 16);
         frame = this.stateT / dur * (sheetDef.anims[anim] || 1);
       } else if (this.state === 'special' && sheetDef.anims.special) {
-        anim = 'special'; frame = this.stateT / 48 * sheetDef.anims.special;
+        anim = 'special'; frame = this.stateT / 44 * sheetDef.anims.special;
       } else if (this.state === 'hurt') {
         anim = 'hurt'; frame = this.stateT / 20 * sheetDef.anims.hurt;
       } else if (this.state === 'down') {

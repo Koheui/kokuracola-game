@@ -75,7 +75,7 @@
       { bg: 'river', actors: ['kojiroWeak', 'villager'], sp: '村人',
         t: ['「小次郎先生、どうぞこれを！」', '', '小倉コーラを受け取った！'], item: 'cola' },
       { bg: 'river', actors: ['kojiro'], sp: null,
-        t: ['ゴクッ、ゴクッ……！', '', '小次郎は一流の剣士の姿に変身した！'], transform: true },
+        t: ['ゴクッ、ゴクッ……！', '', '体中に力が漲り——', '秘剣『燕返し』に開眼した！'], transform: true },
       { bg: 'river', actors: ['kojiro'], sp: '小次郎',
         t: ['「————悪党ども、', '　その娘を返してもらおう。」'] },
     ],
@@ -143,7 +143,7 @@
   // 会話シーンの登場人物
   function actorLook(key) {
     if (key === 'kojiro') return { ...kojiroLook(true), portrait: 'portrait_kojiro' };
-    if (key === 'kojiroWeak') return kojiroLook(false);
+    if (key === 'kojiroWeak') return { ...kojiroLook(), portrait: 'portrait_kojiro' }; // 変身廃止: 常に同じ小次郎
     if (key === 'zako') {
       const c = ENEMY_TYPES.zakoA;
       return { h: c.h, skin: c.colors.skin, skinD: '#b08a60', robe: c.colors.robe, robeD: c.colors.robeD,
@@ -178,13 +178,6 @@
 
     onKill(e) {
       this.kills++;
-      const before = this.player.gauge;
-      this.player.gauge = Math.min(100, this.player.gauge + e.cfg.gauge);
-      if (before < 100 && this.player.gauge >= 100) {
-        AudioFX.sfx.gauge();
-        this.addFx(new Fx('text', this.player.x, this.player.z, 60,
-          { text: '巌流ゲージMAX!', color: '#8fd4ff', size: 22, life: 60 }));
-      }
       if (e.drop) this.items.push(new Item(e.drop, e.x, e.z));
       else if (!e.cfg.boss && Math.random() < 0.16) this.items.push(new Item('cola', e.x, e.z));
       if (e.cfg.boss) {
@@ -524,26 +517,25 @@
     ctx.strokeText('佐々木小次郎', 18, 26);
     ctx.fillText('佐々木小次郎', 18, 26);
     barBox(18, 33, p.maxHp * 2.2, 13, p.hp / p.maxHp, p.hp > 30 ? '#5ecf6b' : '#e05a4a');
-    // 巌流ゲージ
-    const full = p.gauge >= 100;
-    const flash = full && Math.floor(Date.now() / 240) % 2 === 0;
-    barBox(18, 53, 160, 9, p.gauge / 100, flash ? '#ffffff' : '#4aa8e8');
-    ctx.font = `bold 11px ${FONT}`;
-    ctx.fillStyle = full ? '#bfe3ff' : 'rgba(255,255,255,0.75)';
-    ctx.fillText(full && p.strong ? '巌流ゲージMAX — 必殺技!' : '巌流ゲージ', 18, 76);
 
-    // 変身タイマー
-    if (p.strong) {
+    // 燕返しタイマー(コーラ効果)
+    if (p.colaT > 0) {
       const img = Assets.img('cola');
-      ctx.drawImage(img, 250, 18, img.width ? 32 * img.width / img.height : 16, 32);
-      barBox(272, 30, 100, 8, p.colaT / 1200, '#7ab8ff');
-      ctx.fillStyle = '#9fd8ff';
+      ctx.drawImage(img, 18, 50, img.width ? 32 * img.width / img.height : 16, 32);
+      barBox(42, 62, 118, 8, p.colaT / 1200, '#7ab8ff');
       ctx.font = `bold 11px ${FONT}`;
-      ctx.fillText('変身中!', 272, 25);
+      if (p.specialCd > 0) {
+        ctx.fillStyle = 'rgba(180,215,255,0.6)';
+        ctx.fillText('燕返し(C) — 構え直し中…', 42, 57);
+      } else {
+        const blink = Math.floor(Date.now() / 300) % 2 === 0;
+        ctx.fillStyle = blink ? '#ffffff' : '#8fd4ff';
+        ctx.fillText('秘剣・燕返し(C) 使用可!', 42, 57);
+      }
     } else if (Math.floor(Date.now() / 600) % 2 === 0) {
       ctx.fillStyle = '#ffb37a';
       ctx.font = `bold 12px ${FONT}`;
-      ctx.fillText('小倉コーラで変身しよう!', 250, 42);
+      ctx.fillText('小倉コーラで燕返しが使える!', 18, 62);
     }
 
     // ステージ名
@@ -1320,7 +1312,7 @@
     if (!Input.isTouch) {
       ctx.fillStyle = 'rgba(255,255,255,0.65)';
       ctx.font = `14px ${FONT}`;
-      ctx.fillText('移動: 矢印キー/WASD　　攻撃: Z　　ジャンプ: X　　必殺技: C', W / 2, 500);
+      ctx.fillText('移動: 矢印キー/WASD　　攻撃: Z　　ジャンプ: X　　燕返し: C(コーラ効果中)', W / 2, 500);
     }
 
     if (Input.state.startHit && g.titleT > 30) {
