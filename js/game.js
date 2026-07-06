@@ -535,7 +535,7 @@
     // 変身タイマー
     if (p.strong) {
       const img = Assets.img('cola');
-      ctx.drawImage(img, 250, 18, 16, 32);
+      ctx.drawImage(img, 250, 18, img.width ? 32 * img.width / img.height : 16, 32);
       barBox(272, 30, 100, 8, p.colaT / 1200, '#7ab8ff');
       ctx.fillStyle = '#9fd8ff';
       ctx.font = `bold 11px ${FONT}`;
@@ -623,7 +623,9 @@
     ctx.save();
     ctx.translate(cx, cy);
     if (kind === 'cola') {
-      ctx.drawImage(Assets.img('cola'), -20, -44, 40, 80);
+      const img = Assets.img('cola');
+      const ih = 86, iw = img.width ? ih * img.width / img.height : 40;
+      ctx.drawImage(img, -iw / 2, -ih / 2 - 2, iw, ih);
     } else if (kind === 'kusa') {
       // 紫草(染料になる紫根が主役。花はなし)
       // 緑の葉(地上部)

@@ -903,8 +903,9 @@ class Item {
     x.beginPath(); x.arc(sx, sy - 28 + bob, 26 * ds, 0, 7); x.globalAlpha *= 0.25; x.fill();
     x.restore();
     const img = Assets.img(ITEM_DEFS[this.kind].img);
-    const w = (this.kind === 'cola' ? 26 : 36) * ds;
-    const h = (this.kind === 'cola' ? 52 : 36) * ds;
+    let w = (this.kind === 'cola' ? 26 : 36) * ds;
+    const h = (this.kind === 'cola' ? 54 : 36) * ds;
+    if (this.kind === 'cola' && img.width) w = h * img.width / img.height; // 実比率
     x.drawImage(img, sx - w / 2, sy - h - 6 + bob, w, h);
   }
 }
