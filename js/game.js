@@ -147,9 +147,10 @@
     if (key === 'zako') {
       const c = ENEMY_TYPES.zakoA;
       return { h: c.h, skin: c.colors.skin, skinD: '#b08a60', robe: c.colors.robe, robeD: c.colors.robeD,
-        hakama: c.colors.hakama, sash: c.colors.sash, hat: c.hat, weapon: c.weapon, patches: true, face: 'grim' };
+        hakama: c.colors.hakama, sash: c.colors.sash, hat: c.hat, weapon: c.weapon, patches: true, face: 'grim',
+        portrait: 'portrait_zako' };
     }
-    return NPC_PRESETS[key];
+    return { ...NPC_PRESETS[key], portrait: 'portrait_' + key };
   }
 
   /* ---------- ゲーム状態 ---------- */

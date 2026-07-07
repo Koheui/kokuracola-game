@@ -11,7 +11,8 @@ const Assets = (() => {
   const images = {};    // name -> HTMLImageElement | HTMLCanvasElement
   const overridden = {}; // name -> true (外部PNGで差し替え済み)
   const external = ['mihagino', 'city', 'castle', 'river', 'shopin', 'cola', 'cola_logo', 'niku', 'tea',
-    'title_kojiro', 'portrait_kojiro'];
+    'title_kojiro', 'portrait_kojiro',
+    'portrait_villager', 'portrait_daughter', 'portrait_merchant', 'portrait_stable', 'portrait_zako'];
   const BASE = 340; // 地平線(地面の始まり)
 
   /* ============================================================
