@@ -194,7 +194,11 @@
       const def = ITEM_DEFS[item.kind];
       if (item.kind === 'cola') {
         p.transform(this);
+        const before = p.hp;
+        p.hp = Math.min(p.maxHp, p.hp + 20); // 小回復
+        const healed = p.hp - before;
         this.addFx(new Fx('text', p.x, p.z, 50, { text: def.label, color: def.color, size: 24, life: 70 }));
+        if (healed > 0) this.addFx(new Fx('text', p.x, p.z, 78, { text: '体力+' + healed, color: '#5ecf6b', size: 18, life: 60 }));
       } else {
         const heal = item.kind === 'niku' ? 60 : 25;
         p.hp = Math.min(p.maxHp, p.hp + heal);
