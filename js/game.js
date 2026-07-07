@@ -1259,7 +1259,8 @@
     if (Assets.isExternal('castle')) {
       const img = Assets.img('castle');
       const w = img.width * (H / img.height);
-      ctx.drawImage(img, -((off * 0.5) % w), 0, w, H);
+      // 画面幅いっぱいにループ描画(右端が黒くならないよう2枚以上並べる)
+      for (let xx = -((off * 0.5) % w); xx < W; xx += w) ctx.drawImage(img, xx, 0, w, H);
     } else {
       const far = Assets.img('castle_far');
       const near = Assets.img('castle_near');
