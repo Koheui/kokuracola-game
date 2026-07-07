@@ -22,8 +22,8 @@ const Assets = (() => {
    * 行の順番は anims の定義順。詳細は docs/asset_spec.md を参照。
    * ============================================================ */
   const SPRITE_DEFS = {
-    kojiro_strong: { fw: 160, fh: 160, feetY: 148, charH: 118,
-      anims: { idle: 6, walk: 8, attack1: 5, attack2: 5, attack3: 6, jump: 4, hurt: 3, down: 5, special: 8 } },
+    kojiro_strong: { fw: 288, fh: 224, feetY: 208, charH: 130,
+      anims: { idle: 4, walk: 4, attack1: 4, attack2: 4, attack3: 5, jump: 2, hurt: 2, down: 5, special: 8 } },
     kojiro_weak: { fw: 160, fh: 160, feetY: 148, charH: 108,
       anims: { idle: 6, walk: 8, attack1: 5, attack2: 5, attack3: 6, jump: 4, hurt: 3, down: 5 } },
     zakoA: { fw: 144, fh: 144, feetY: 134, charH: 102,
