@@ -736,43 +736,32 @@ class Fx {
       x.arc(0, 0, R * 0.97, Math.max(a0, sweep - 0.9), sweep);
       x.stroke();
     } else if (this.kind === 'arc') {
-      // 燕返しの刀筋: 大きく弧を描く三日月の剣閃
+      // 燕返しの刀筋: a0→a1 へ弧(残影)が伸びる三日月の剣閃
       x.translate(sx, sy - (this.hy != null ? this.hy : 54));
       x.scale(this.face || 1, 1);
-      x.rotate(this.rot || 0);
-      const R = this.r || 120;              // 弧の半径
-      const sweep = this.sweep || 2.4;      // 弧の広がり(ラジアン)
-      const a0 = -sweep / 2, a1 = sweep / 2;
-      // 描き進み(前半で伸び、後半で消える)
-      const grow = Math.min(1, p * 2.2);
-      const fade = p < 0.5 ? 1 : 1 - (p - 0.5) * 2;
+      const R = this.r || 100;
+      const a0 = this.a0 != null ? this.a0 : -1.2;
+      const a1 = this.a1 != null ? this.a1 : 1.2;
+      const ccw = a1 < a0;                     // a1<a0なら反時計回り(斬り上げ)
+      const grow = Math.min(1, p * 2.3);       // 前半で刃筋が伸びる
+      const fade = p < 0.45 ? 1 : 1 - (p - 0.45) / 0.55; // 後半で消える
       const aEnd = a0 + (a1 - a0) * grow;
-      const outer = R, inner = R - (this.thick || 26);
       x.lineCap = 'round';
+      const arc = () => { x.beginPath(); x.arc(0, 0, R, a0, aEnd, ccw); x.stroke(); };
       // 外側グロー
-      x.globalAlpha = fade * 0.5;
-      x.strokeStyle = this.color || '#8fd4ff';
-      x.lineWidth = (this.thick || 26) + 10;
-      x.beginPath(); x.arc(0, 0, (outer + inner) / 2, a0, aEnd); x.stroke();
+      x.globalAlpha = fade * 0.45; x.strokeStyle = this.color || '#8fd4ff';
+      x.lineWidth = (this.thick || 26) + 12; arc();
       // 本体(白い刃筋)
       x.globalAlpha = fade;
-      const grad = x.createLinearGradient(-outer, 0, outer, 0);
-      grad.addColorStop(0, 'rgba(255,255,255,0)');
-      grad.addColorStop(0.5, '#ffffff');
-      grad.addColorStop(1, this.color || '#bfe6ff');
-      x.strokeStyle = grad;
-      x.lineWidth = this.thick || 26;
-      x.beginPath(); x.arc(0, 0, (outer + inner) / 2, a0, aEnd); x.stroke();
+      x.strokeStyle = this.color || '#bfe6ff';
+      x.lineWidth = this.thick || 26; arc();
       // 芯の鋭い光
-      x.globalAlpha = fade;
       x.strokeStyle = '#ffffff';
-      x.lineWidth = Math.max(2, (this.thick || 26) * 0.28);
-      x.beginPath(); x.arc(0, 0, (outer + inner) / 2, a0, aEnd); x.stroke();
+      x.lineWidth = Math.max(2, (this.thick || 26) * 0.3); arc();
       // 先端のきらめき
-      x.globalAlpha = fade;
       x.fillStyle = '#ffffff';
-      const tipX = Math.cos(aEnd) * (outer + inner) / 2, tipY = Math.sin(aEnd) * (outer + inner) / 2;
-      x.beginPath(); x.arc(tipX, tipY, 5, 0, 7); x.fill();
+      const tx = Math.cos(aEnd) * R, ty = Math.sin(aEnd) * R;
+      x.beginPath(); x.arc(tx, ty, 5, 0, 7); x.fill();
     } else if (this.kind === 'cut') {
       x.translate(sx, sy - (this.hy != null ? this.hy : 38));
       x.rotate(this.rot != null ? this.rot : -0.5);
@@ -952,7 +941,7 @@ class Player {
     this.vy = 0; this.facing = 1;
     this.maxHp = maxHp || 100; this.hp = this.maxHp;
     this.gauge = 0;
-    this.colaT = 0;          // 燕返しが使える残りフレーム(20秒=1200)
+    this.tsubame = 0;        // 燕返しのストック(コーラ1本=1回)
     this.specialCd = 0;      // 燕返しのクールダウン
     this.state = 'normal';
     this.stateT = 0;
@@ -967,17 +956,14 @@ class Player {
   get strong() { return true; }
   get speed() { return 3.9; }
 
-  // 小倉コーラ: 20秒間、秘剣・燕返し(Cボタン)が使えるようになる
+  // 小倉コーラ: 1本飲むと秘剣・燕返し(Cボタン)を1回放てる(最大3回ストック)
   transform(g) {
-    const had = this.colaT > 0;
-    this.colaT = 1200; // 20秒
+    this.tsubame = Math.min(3, this.tsubame + 1);
     AudioFX.sfx.cola();
     g.flashT = 6;
-    if (!had) {
-      g.addFx(new Fx('ring', this.x, this.z, 0, { r: 110, color: '#9fd8ff', life: 26 }));
-      g.addFx(new Fx('ring', this.x, this.z, 0, { r: 110, color: '#fff', life: 36 }));
-      g.addFx(new Fx('text', this.x, this.z, 60, { text: '秘剣・燕返し 解禁!', color: '#8fd4ff', size: 22, life: 60 }));
-    }
+    g.addFx(new Fx('ring', this.x, this.z, 0, { r: 110, color: '#9fd8ff', life: 26 }));
+    g.addFx(new Fx('ring', this.x, this.z, 0, { r: 110, color: '#fff', life: 36 }));
+    g.addFx(new Fx('text', this.x, this.z, 60, { text: '燕返し +1', color: '#8fd4ff', size: 22, life: 60 }));
   }
 
   takeDamage(dmg, fromDir, g, heavy) {
@@ -1018,16 +1004,10 @@ class Player {
     this.stateT += dt;
     if (this.invulnT > 0) this.invulnT -= dt;
     if (this.specialCd > 0) this.specialCd -= dt;
-    if (this.colaT > 0) {
-      this.colaT -= dt;
-      if (this.colaT <= 0) {
-        g.addFx(new Fx('text', this.x, this.z, 0, { text: '燕返しの効果が切れた…', color: '#aaa', size: 16 }));
-        g.addFx(new Fx('poof', this.x, this.z, 40, { life: 20 }));
-      }
-      if (Math.random() < 0.25) {
-        g.addFx(new Fx('spark', this.x + (Math.random() - 0.5) * 30, this.z, this.y + Math.random() * 60,
-          { color: '#9fd8ff', r: 13, life: 13 }));
-      }
+    // 燕返しのストックがある間はオーラの粒子を漂わせる
+    if (this.tsubame > 0 && Math.random() < 0.2) {
+      g.addFx(new Fx('spark', this.x + (Math.random() - 0.5) * 30, this.z, this.y + Math.random() * 60,
+        { color: '#9fd8ff', r: 13, life: 13 }));
     }
 
     if (this.y > 0 || this.vy > 0) {
@@ -1054,7 +1034,7 @@ class Player {
         }
         if (I.jumpHit && this.y === 0) { this.vy = 9.4; AudioFX.sfx.jump(); }
         if (I.attackHit) { this.atkIndex = 0; this.startAttack(g); }
-        else if (I.specialHit && this.colaT > 0 && this.specialCd <= 0 && this.y === 0) this.startSpecial(g);
+        else if (I.specialHit && this.tsubame > 0 && this.specialCd <= 0 && this.y === 0) this.startSpecial(g);
         break;
       }
       case 'attack': {
@@ -1101,13 +1081,13 @@ class Player {
         if ((this.stateT > 2 && this.stateT < 12) || (this.stateT > 22 && this.stateT < 32)) {
           this.x += this.facing * 2.6 * dt; // 踏み込み
         }
-        // 燕返しは判定が広い: 通常斬りより前方リーチ・奥行きとも拡大
+        // 燕返しの判定: 通常斬り(前方~100)より少しだけ長い程度
         const doSlash = (set, dmg, launch) => {
           for (const e of g.enemies) {
             if (e.dead || set.has(e)) continue;
             const dxE = (e.x - this.x) * this.facing;
-            if (dxE > -40 && dxE < 168 && Math.abs(e.z - this.z) < 52 &&
-                e.y < this.y + 120 && e.y + e.height > this.y - 10) {
+            if (dxE > -24 && dxE < 122 && Math.abs(e.z - this.z) < 40 &&
+                e.y < this.y + 110 && e.y + e.height > this.y - 8) {
               set.add(e);
               e.takeHit(dmg, this.facing, g, launch);
               g.hitstop = Math.max(g.hitstop, 5);
@@ -1115,28 +1095,28 @@ class Player {
           }
           for (const a of g.arrows) {
             const dxA = (a.x - this.x) * this.facing;
-            if (!a.dead && dxA > -30 && dxA < 160 && Math.abs(a.z - this.z) < 44) {
+            if (!a.dead && dxA > -20 && dxA < 118 && Math.abs(a.z - this.z) < 36) {
               if (a.smash) a.smash(g); else a.dead = true;
             }
           }
         };
         if (this.stateT > 4 && this.stateT <= 16) doSlash(this.tsubameA, 22, false);
         if (this.stateT > 24 && this.stateT <= 36) doSlash(this.tsubameB, 30, true);
-        // 1撃目: 斬り下ろしの大きな刀筋(上→下へ弧)
+        // 1撃目: 斬り下ろしの刀筋(上→下へ弧が伸びる)
         if (!this.tsubameFx1 && this.stateT > 4) {
           this.tsubameFx1 = true;
           AudioFX.sfx.slash();
-          g.addFx(new Fx('arc', this.x + this.facing * 70, this.z, 0,
-            { hy: 96, face: this.facing, rot: -0.95, r: 150, sweep: 2.5, thick: 30,
+          g.addFx(new Fx('arc', this.x + this.facing * 24, this.z, 0,
+            { hy: 66, face: this.facing, a0: -1.25, a1: 1.25, r: 100, thick: 24,
               life: 15, color: '#bfe6ff' }));
           g.shakeT = Math.max(g.shakeT, 5);
         }
-        // 2撃目: 斬り上げの大きな刀筋(下→上へ弧)
+        // 2撃目: 斬り上げの刀筋(下→上へ弧が伸びる)
         if (!this.tsubameFx2 && this.stateT > 24) {
           this.tsubameFx2 = true;
           AudioFX.sfx.slash();
-          g.addFx(new Fx('arc', this.x + this.facing * 74, this.z, 0,
-            { hy: 20, face: this.facing, rot: -2.35, r: 168, sweep: 2.7, thick: 34,
+          g.addFx(new Fx('arc', this.x + this.facing * 24, this.z, 0,
+            { hy: 60, face: this.facing, a0: 1.25, a1: -1.25, r: 108, thick: 28,
               life: 17, color: '#e8f4ff' }));
           g.shakeT = Math.max(g.shakeT, 8);
           g.flashT = Math.max(g.flashT, 5);
@@ -1178,7 +1158,8 @@ class Player {
 
   startSpecial(g) {
     this.state = 'special'; this.stateT = 0;
-    this.specialCd = 55;
+    this.specialCd = 20;
+    this.tsubame = Math.max(0, this.tsubame - 1); // コーラ1本=1回
     this.tsubameA = new Set(); this.tsubameB = new Set();
     this.tsubameFx1 = this.tsubameFx2 = false;
     AudioFX.sfx.special();
@@ -1192,8 +1173,8 @@ class Player {
     x.fillStyle = 'rgba(0,0,0,0.35)';
     x.beginPath(); x.ellipse(sx, gy, 22 * ds, 7 * ds, 0, 0, 7); x.fill();
 
-    // 燕返し解禁中のオーラ
-    if (this.colaT > 0) {
+    // 燕返しストックがある間のオーラ
+    if (this.tsubame > 0) {
       x.save();
       const a = 0.2 + Math.sin(Date.now() * 0.02) * 0.08;
       const grad = x.createRadialGradient(sx, gy - 40, 10, sx, gy - 40, 70);

@@ -247,7 +247,7 @@
       this.stage = st;
       this.worldLen = st.len;
       this.player = new Player(this.maxHpBase);
-      if (key === 'river') this.player.colaT = 1200; // 直前にコーラを飲んで変身済み
+      if (key === 'river') this.player.tsubame = 1; // 直前にコーラを飲んで燕返し1回ぶんストック
       this.enemies = []; this.arrows = []; this.items = []; this.fx = [];
       this.npcs = [];
       if (st.daughter) this.npcs.push({ preset: 'daughter', x: st.len - 90, z: 28 });
@@ -523,24 +523,24 @@
     ctx.fillText('佐々木小次郎', 18, 26);
     barBox(18, 33, p.maxHp * 2.2, 13, p.hp / p.maxHp, p.hp > 30 ? '#5ecf6b' : '#e05a4a');
 
-    // 燕返しタイマー(コーラ効果)
-    if (p.colaT > 0) {
+    // 燕返しストック(コーラ1本=1回)
+    if (p.tsubame > 0) {
       const img = Assets.img('cola');
-      ctx.drawImage(img, 18, 50, img.width ? 32 * img.width / img.height : 16, 32);
-      barBox(42, 62, 118, 8, p.colaT / 1200, '#7ab8ff');
-      ctx.font = `bold 11px ${FONT}`;
-      if (p.specialCd > 0) {
-        ctx.fillStyle = 'rgba(180,215,255,0.6)';
-        ctx.fillText('燕返し(C) — 構え直し中…', 42, 57);
-      } else {
-        const blink = Math.floor(Date.now() / 300) % 2 === 0;
-        ctx.fillStyle = blink ? '#ffffff' : '#8fd4ff';
-        ctx.fillText('秘剣・燕返し(C) 使用可!', 42, 57);
+      const bw = img && img.width ? 26 * img.width / img.height : 13;
+      ctx.font = `bold 12px ${FONT}`;
+      const blink = p.specialCd <= 0 && Math.floor(Date.now() / 350) % 2 === 0;
+      ctx.fillStyle = blink ? '#ffffff' : '#8fd4ff';
+      ctx.textAlign = 'left';
+      ctx.fillText('秘剣・燕返し(C)', 18, 60);
+      // ストック分の瓶アイコン
+      for (let i = 0; i < p.tsubame; i++) {
+        ctx.drawImage(img, 128 + i * (bw + 4), 48, bw, 26);
       }
     } else if (Math.floor(Date.now() / 600) % 2 === 0) {
       ctx.fillStyle = '#ffb37a';
       ctx.font = `bold 12px ${FONT}`;
-      ctx.fillText('小倉コーラで燕返しが使える!', 18, 62);
+      ctx.textAlign = 'left';
+      ctx.fillText('小倉コーラで燕返しが使える!', 18, 60);
     }
 
     // ステージ名
@@ -949,7 +949,7 @@
       const p = g.player;
       p.hp = p.maxHp; p.deadWait = 0;
       p.state = 'normal'; p.invulnT = 120;
-      p.colaT = Math.max(p.colaT, 600); // 立ち上がりに一口
+      p.tsubame = Math.max(p.tsubame, 1); // 立ち上がりに一口=燕返し1回ぶん
       for (const e of g.enemies) { if (!e.dead) { e.atkCool = 90; e.state = 'chase'; } }
       g.state = 'play';
       AudioFX.bgm(g.boss ? 'boss' : 'field');
