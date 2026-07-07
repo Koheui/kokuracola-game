@@ -1063,16 +1063,12 @@
     if (dt > 0) updateMini(dt);
     const m = g.mini;
 
-    // 空(川辺の遠景)
-    const far = Assets.img('river_far');
-    for (let xx = -((m.camX * 0.2) % 1920); xx < W; xx += 1920) ctx.drawImage(far, xx, 0);
-    // 奥の林
-    ctx.fillStyle = 'rgba(40,70,45,0.55)';
-    for (let i = 0; i < 14; i++) {
-      const tx = (i * 160 - (m.camX * 0.4) % 160) - 40;
-      ctx.beginPath();
-      ctx.arc(tx, 330 - (i % 3) * 20, 46, 0, 7);
-      ctx.fill();
+    // 森の遠景(生成アート、視差スクロール)
+    const bg = Assets.img('minibg');
+    if (bg) {
+      const off = (m.camX * 0.35) % 1920;
+      for (let xx = -off; xx < W; xx += 1920) ctx.drawImage(bg, xx, 0, 1920, H);
+      for (let xx = -off + 1920; xx < W; xx += 1920) ctx.drawImage(bg, xx, 0, 1920, H);
     }
 
     ctx.save();
@@ -1158,22 +1154,31 @@
       ctx.stroke();
     }
 
-    // 小次郎(横スクロール用)
+    // 小次郎(横スクロール用) — スプライトシート
     ctx.save();
     ctx.translate(m.px - m.camX, m.py);
     if (m.invuln > 0 && Math.floor(m.invuln / 3) % 2 === 0) ctx.globalAlpha = 0.45;
-    ctx.scale(m.facing * 0.92, 0.92);
-    let swing = null;
-    if (m.slashT > 0) {
-      const p = 1 - m.slashT / 12;
-      swing = p < 0.35 ? -2.0 : -1.9 + (p - 0.35) * 4.6;
-    } else if (m.vy !== 0) swing = -1.6;
-    drawWarrior(ctx, {
-      ...kojiroLook(false),
-      walk: m.walk, moving: m.moving && m.vy === 0,
-      breath: Date.now() * 0.006,
-      swing,
-    });
+    const sheetDef = Assets.sprite('kojiro_strong') && Assets.spriteDef('kojiro_strong');
+    if (sheetDef) {
+      ctx.scale(m.facing, 1);
+      let anim = 'idle', frame = 0;
+      if (m.slashT > 0) {
+        anim = 'attack1'; frame = (1 - m.slashT / 12) * sheetDef.anims.attack1;
+      } else if (m.vy !== 0) {
+        anim = 'jump'; frame = m.vy > 0 ? 0 : (sheetDef.anims.jump - 1);
+      } else if (m.moving) {
+        anim = 'walk'; frame = Math.floor(m.walk * 0.85) % sheetDef.anims.walk;
+      } else {
+        anim = 'idle'; frame = Math.floor(Date.now() / 150) % sheetDef.anims.idle;
+      }
+      drawFromSheet(ctx, 'kojiro_strong', anim, frame, 120);
+    } else {
+      ctx.scale(m.facing * 0.92, 0.92);
+      let swing = null;
+      if (m.slashT > 0) { const p = 1 - m.slashT / 12; swing = p < 0.35 ? -2.0 : -1.9 + (p - 0.35) * 4.6; }
+      else if (m.vy !== 0) swing = -1.6;
+      drawWarrior(ctx, { ...kojiroLook(), walk: m.walk, moving: m.moving && m.vy === 0, breath: Date.now() * 0.006, swing });
+    }
     ctx.restore();
 
     for (const f of g.fx) f.draw(ctx, m.camX);
