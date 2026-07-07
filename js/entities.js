@@ -735,6 +735,44 @@ class Fx {
       x.beginPath();
       x.arc(0, 0, R * 0.97, Math.max(a0, sweep - 0.9), sweep);
       x.stroke();
+    } else if (this.kind === 'arc') {
+      // 燕返しの刀筋: 大きく弧を描く三日月の剣閃
+      x.translate(sx, sy - (this.hy != null ? this.hy : 54));
+      x.scale(this.face || 1, 1);
+      x.rotate(this.rot || 0);
+      const R = this.r || 120;              // 弧の半径
+      const sweep = this.sweep || 2.4;      // 弧の広がり(ラジアン)
+      const a0 = -sweep / 2, a1 = sweep / 2;
+      // 描き進み(前半で伸び、後半で消える)
+      const grow = Math.min(1, p * 2.2);
+      const fade = p < 0.5 ? 1 : 1 - (p - 0.5) * 2;
+      const aEnd = a0 + (a1 - a0) * grow;
+      const outer = R, inner = R - (this.thick || 26);
+      x.lineCap = 'round';
+      // 外側グロー
+      x.globalAlpha = fade * 0.5;
+      x.strokeStyle = this.color || '#8fd4ff';
+      x.lineWidth = (this.thick || 26) + 10;
+      x.beginPath(); x.arc(0, 0, (outer + inner) / 2, a0, aEnd); x.stroke();
+      // 本体(白い刃筋)
+      x.globalAlpha = fade;
+      const grad = x.createLinearGradient(-outer, 0, outer, 0);
+      grad.addColorStop(0, 'rgba(255,255,255,0)');
+      grad.addColorStop(0.5, '#ffffff');
+      grad.addColorStop(1, this.color || '#bfe6ff');
+      x.strokeStyle = grad;
+      x.lineWidth = this.thick || 26;
+      x.beginPath(); x.arc(0, 0, (outer + inner) / 2, a0, aEnd); x.stroke();
+      // 芯の鋭い光
+      x.globalAlpha = fade;
+      x.strokeStyle = '#ffffff';
+      x.lineWidth = Math.max(2, (this.thick || 26) * 0.28);
+      x.beginPath(); x.arc(0, 0, (outer + inner) / 2, a0, aEnd); x.stroke();
+      // 先端のきらめき
+      x.globalAlpha = fade;
+      x.fillStyle = '#ffffff';
+      const tipX = Math.cos(aEnd) * (outer + inner) / 2, tipY = Math.sin(aEnd) * (outer + inner) / 2;
+      x.beginPath(); x.arc(tipX, tipY, 5, 0, 7); x.fill();
     } else if (this.kind === 'cut') {
       x.translate(sx, sy - (this.hy != null ? this.hy : 38));
       x.rotate(this.rot != null ? this.rot : -0.5);
@@ -1063,12 +1101,13 @@ class Player {
         if ((this.stateT > 2 && this.stateT < 12) || (this.stateT > 22 && this.stateT < 32)) {
           this.x += this.facing * 2.6 * dt; // 踏み込み
         }
+        // 燕返しは判定が広い: 通常斬りより前方リーチ・奥行きとも拡大
         const doSlash = (set, dmg, launch) => {
           for (const e of g.enemies) {
             if (e.dead || set.has(e)) continue;
             const dxE = (e.x - this.x) * this.facing;
-            if (dxE > -14 && dxE < 108 && Math.abs(e.z - this.z) < 30 &&
-                e.y < this.y + 80 && e.y + e.height > this.y) {
+            if (dxE > -40 && dxE < 168 && Math.abs(e.z - this.z) < 52 &&
+                e.y < this.y + 120 && e.y + e.height > this.y - 10) {
               set.add(e);
               e.takeHit(dmg, this.facing, g, launch);
               g.hitstop = Math.max(g.hitstop, 5);
@@ -1076,24 +1115,31 @@ class Player {
           }
           for (const a of g.arrows) {
             const dxA = (a.x - this.x) * this.facing;
-            if (!a.dead && dxA > -10 && dxA < 100 && Math.abs(a.z - this.z) < 26) {
+            if (!a.dead && dxA > -30 && dxA < 160 && Math.abs(a.z - this.z) < 44) {
               if (a.smash) a.smash(g); else a.dead = true;
             }
           }
         };
         if (this.stateT > 4 && this.stateT <= 16) doSlash(this.tsubameA, 22, false);
         if (this.stateT > 24 && this.stateT <= 36) doSlash(this.tsubameB, 30, true);
+        // 1撃目: 斬り下ろしの大きな刀筋(上→下へ弧)
         if (!this.tsubameFx1 && this.stateT > 4) {
           this.tsubameFx1 = true;
           AudioFX.sfx.slash();
-          g.addFx(new Fx('cut', this.x + this.facing * 55, this.z, 0,
-            { hy: 58, rot: this.facing > 0 ? -0.7 : 0.7, len: 115, life: 13, color: '#dff2ff' }));
+          g.addFx(new Fx('arc', this.x + this.facing * 70, this.z, 0,
+            { hy: 96, face: this.facing, rot: -0.95, r: 150, sweep: 2.5, thick: 30,
+              life: 15, color: '#bfe6ff' }));
+          g.shakeT = Math.max(g.shakeT, 5);
         }
+        // 2撃目: 斬り上げの大きな刀筋(下→上へ弧)
         if (!this.tsubameFx2 && this.stateT > 24) {
           this.tsubameFx2 = true;
           AudioFX.sfx.slash();
-          g.addFx(new Fx('cut', this.x + this.facing * 62, this.z, 0,
-            { hy: 48, rot: this.facing > 0 ? 0.75 : -0.75, len: 130, life: 14, color: '#ffffff' }));
+          g.addFx(new Fx('arc', this.x + this.facing * 74, this.z, 0,
+            { hy: 20, face: this.facing, rot: -2.35, r: 168, sweep: 2.7, thick: 34,
+              life: 17, color: '#e8f4ff' }));
+          g.shakeT = Math.max(g.shakeT, 8);
+          g.flashT = Math.max(g.flashT, 5);
         }
         if (this.stateT >= dur) { this.state = 'normal'; }
         break;
